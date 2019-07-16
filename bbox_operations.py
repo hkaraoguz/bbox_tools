@@ -19,6 +19,11 @@ def write_csv_bbox(bboxes, category_ids, csv_filename, image_path):
       csv_filename: filename of the output csv
       image_path: relative path of the image
     """
+    if len(bboxes) == 0:
+        with open(csv_filename, 'a') as f:
+            f.write("{},,,,,\n".format(image_path))
+        return
+
     with open(csv_filename, 'a') as f:
         for i, bbox in enumerate(bboxes):
 
@@ -28,7 +33,7 @@ def write_csv_bbox(bboxes, category_ids, csv_filename, image_path):
             x_max = int(x_max)
             y_max = int(y_max)
 
-            f.write("{}, {}, {}, {}, {}, {}\n".format(image_path, x_min, y_min, x_max, y_max, category_ids[i]))
+            f.write("{},{},{},{},{},{}\n".format(image_path, x_min, y_min, x_max, y_max, category_ids[i]))
 
 
 def write_pascalvoc_xml(bboxes, category_ids, xml_filename, img_filename):
@@ -79,7 +84,7 @@ def write_pascalvoc_xml(bboxes, category_ids, xml_filename, img_filename):
     # Output the xml in pretty format
     xmlstr = minidom.parseString(ET.tostring(root)).toprettyxml(indent="   ")
 
-    with open(xmlpath, "w") as f:
+    with open(xml_filename, "w") as f:
         f.write(xmlstr)
 
 

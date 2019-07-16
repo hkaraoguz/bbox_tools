@@ -46,11 +46,20 @@ def get_aug(aug, min_area=0., min_visibility=0.):
     return A.Compose(aug, bbox_params={'format': 'pascal_voc', 'min_area': min_area, 'min_visibility': min_visibility, 'label_fields': ['category_id']})
 
 
+def check_output_folder(path):
+    try:
+        os.mkdir(path)
+        return True
+    except Exception as ex:
+        print(ex)
+        return False
+
+
 if __name__ == "__main__":
 
     argparser = argparse.ArgumentParser()
     argparser.add_argument("path", help="Path of the image and annotation files")
-    arparser.add_argument("--no_augmentations", type=int, default=5, 
+    argparser.add_argument("--no_augmentations", type=int, default=5, 
                           help="No of augmented examples for each original sample")
 
     args = argparser.parse_args()
@@ -58,6 +67,13 @@ if __name__ == "__main__":
     xml_files = []
 
     img_filenames = []
+
+    assert os.path.exists(args.path) is True
+
+    augmentation_path = os.path.join(args.path, "augmentations")
+
+    check_output_folder(augmentation_path)
+        
 
     for file in os.listdir(args.path):
         if file.endswith(".jpg"):
@@ -71,8 +87,8 @@ if __name__ == "__main__":
     for i, afile in enumerate(img_files):
            
         for j in range(0, args.no_augmentations):
-            img_file = afile
-            xml_file = xml_files[i]
+            img_file = afile.split("/")[-1]
+            xml_file = xml_files[i].split("/")[-1]
 
             new_file = img_file[:-4]
             new_file += "_"
@@ -82,18 +98,30 @@ if __name__ == "__main__":
             new_img_filename = new_img_file.split("/")[-1]
                 
             new_xml_file = new_file+xml_file[-4:]
+
+            new_img_file = os.path.join(augmentation_path, new_img_file)
+            new_xml_file = os.path.join(augmentation_path, new_xml_file)
+
             print(new_img_file)
             print(new_xml_file)
+
+            # continue
+
             bboxes, cat_ids = parse_pascalvoc_bboxes_from_xml(xml_files[i])
             image = cv2.imread(afile,cv2.IMREAD_COLOR)
             image = cv2.cvtColor(image, cv2.COLOR_BGR2RGB)  
+            height = image.shape[0]
+            width = image.shape[1]
+            wh = width/height
+
             annotations = {'image': image.copy(), 'bboxes': bboxes, 'category_id': cat_ids}
             aug = get_aug([
-                            A.ShiftScaleRotate(shift_limit=0,scale_limit=(0.1,0.5),rotate_limit=3,p=0.5),
-                            A.RGBShift(p=0.5),
+                            A.RandomSizedCrop((int(height/4),int(height*0.5)),int(height/2),int(wh*(height/2)),p=0.5),
+                            A.ShiftScaleRotate(shift_limit=0,scale_limit=0.,rotate_limit=3,p=0.5),
+                            #A.RGBShift(p=0.5),
                             A.Blur(blur_limit=2, p=0.5),
                             A.RandomBrightness(p=0.5),
-                            A.CLAHE(p=0.5),
+                            #A.CLAHE(p=0.5),
                         ])
             augmented=aug(**annotations)
             #visualize(augmented)
