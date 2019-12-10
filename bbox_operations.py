@@ -36,7 +36,28 @@ def write_csv_bbox(bboxes, category_ids, csv_filename, image_path):
             f.write("{},{},{},{},{},{}\n".format(image_path, x_min, y_min, x_max, y_max, category_ids[i]))
 
 
-def write_pascalvoc_xml(bboxes, category_ids, xml_filename, img_filename):
+def check_coordinates(x_min, y_min, x_max, y_max, img_height, img_width):
+    '''
+    Checks if coordinates are within image bounds
+    '''
+
+    if x_min < 0 or x_min >= img_width:
+        return False
+    elif x_max < 0 or x_max >= img_width:
+        return False
+    elif x_min >= x_max:
+        return False
+    elif y_min < 0 or y_min >= img_height:
+        return False
+    elif y_max < 0 or y_max >= img_height:
+        return False
+    elif y_min >= y_max:
+        return False
+
+    return True
+
+
+def write_pascalvoc_xml(bboxes, category_ids, img_height, img_width, xml_filename, img_filename):
     """Writes bboxes in Pascal VOC format.
 
     Args:
@@ -47,37 +68,43 @@ def write_pascalvoc_xml(bboxes, category_ids, xml_filename, img_filename):
       image_filename: name of the image file
     """
     root = ET.Element("annotation")
-    x = ET.SubElement(root, "filename")
-    x.text = img_filename
+    val = ET.SubElement(root, "filename")
+    val.text = img_filename
 
     # For each bbox, create xml entry
     for i, bbox in enumerate(bboxes):
-        obj = ET.SubElement(root, "object")
-        name = ET.SubElement(obj, "name")
-        name.text = category_ids[i]
-        x = ET.SubElement(obj, "pose")
-        x.text = "Unspecified"
-        x = ET.SubElement(obj, "truncated")
-        x.text = "0"
-        x = ET.SubElement(obj, "difficult")
-        x.text = "0"
-        bndbox = ET.SubElement(obj, "bndbox")
+
         x_min, y_min, x_max, y_max = bbox
-        
         # Convert values to int
         x_min = int(x_min)
         y_min = int(y_min)
         x_max = int(x_max)
         y_max = int(y_max)
 
-        x = ET.SubElement(bndbox, "xmin")
-        x.text = str(x_min)
-        x = ET.SubElement(bndbox, "ymin")
-        x.text = str(y_min)
-        x = ET.SubElement(bndbox, "xmax")
-        x.text = str(x_max)
-        x = ET.SubElement(bndbox, "ymax")
-        x.text = str(y_max)
+        if not check_coordinates(x_min, y_min, x_max, y_max, img_height, img_width):
+            print('Error in bbox dimensions')
+            print('x_min {} x_max {} y_min {} y_max {} image_height {} image_width {}'.format(x_min,x_max,y_min,y_max,img_height,img_width))
+            continue
+
+        obj = ET.SubElement(root, "object")
+        name = ET.SubElement(obj, "name")
+        name.text = category_ids[i]
+        val = ET.SubElement(obj, "pose")
+        val.text = "Unspecified"
+        val = ET.SubElement(obj, "truncated")
+        val.text = "0"
+        val = ET.SubElement(obj, "difficult")
+        val.text = "0"
+        bndbox = ET.SubElement(obj, "bndbox")
+
+        val = ET.SubElement(bndbox, "xmin")
+        val.text = str(x_min)
+        val = ET.SubElement(bndbox, "ymin")
+        val.text = str(y_min)
+        val = ET.SubElement(bndbox, "xmax")
+        val.text = str(x_max)
+        val = ET.SubElement(bndbox, "ymax")
+        val.text = str(y_max)
         
     tree = ET.ElementTree(root)
 
